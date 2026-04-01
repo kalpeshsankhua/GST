@@ -671,6 +671,9 @@ tbody tr{animation:faderow .18s ease both}
     <div class="sb-sync-row" onclick="exportCSV()">
       <span>⬇</span><span>Export CSV</span>
     </div>
+    <div class="sb-sync-row" id="sb-dl-cm" onclick="downloadClientMaster()">
+      <span>📥</span><span id="sb-dl-cm-lbl">Download Client Master</span>
+    </div>
   </div>
 </div>
 
@@ -1936,6 +1939,43 @@ function exportCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download=`GST_${curMonth==='master'?'Master':snLabel(curMonth)}_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}.csv`;
   a.click();showToast('Exported ✓','ok');
+}
+
+// ── DOWNLOAD CLIENT MASTER ───────────────────────────────
+// Isolated feature: fetches full CLIENT_MASTER sheet from backend
+// and triggers a browser CSV download. No existing logic is modified.
+async function downloadClientMaster(){
+  if(!scriptUrl||scriptUrl==='YOUR_APPS_SCRIPT_URL_HERE'){
+    showToast('No Apps Script URL configured','err');return;
+  }
+  // Loading state
+  const lbl=el('sb-dl-cm-lbl');
+  const row=el('sb-dl-cm');
+  if(lbl)lbl.textContent='Downloading…';
+  if(row)row.style.opacity='.6';
+  try{
+    const res=await fetch(scriptUrl+'?action=downloadClientMaster',{
+      method:'POST',
+      body:JSON.stringify({action:'downloadClientMaster'})
+    });
+    const j=await res.json();
+    if(!j.success)throw new Error(j.error||'Server error');
+    const {csvData,filename,rowCount}=j.data;
+    if(!csvData||!csvData.trim()){showToast('No data found in CLIENT_MASTER','err');return;}
+    // Trigger download
+    const blob=new Blob(['\uFEFF'+csvData],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=filename||`CLIENT_MASTER_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    showToast(`Client Master downloaded (${rowCount} records) ✓`,'ok');
+  }catch(err){
+    showToast('Download failed: '+err.message,'err');
+  }finally{
+    if(lbl)lbl.textContent='Download Client Master';
+    if(row)row.style.opacity='';
+  }
 }
 
 // ── MODAL / TOAST ────────────────────────────────────────
