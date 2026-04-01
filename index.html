@@ -1928,14 +1928,67 @@ async function doBulkSt() {
 }
 
 // ── EXPORT CSV ───────────────────────────────────────────
-function exportCSV(){
-  const list=getFiltered();const isMaster=curMonth==='master';
-  const hdrs=isMaster?['Name','GSTIN','State','Frequency','Priority','Employee','Fees']:['Name','GSTIN','State','Frequency','Priority','Employee','GSTR1','GSTR2B','GSTR3B','G1 Remarks','G3B Remarks'];
-  const rows=list.map(c=>isMaster?[c.name,c.gstin,c.state,c.freq,c.priority,c.emp,c.fees]:[c.name,c.gstin,c.state,c.freq,c.priority,c.emp,c.g1st,c.g2bst,c.g3st,c.g1rem,c.g3rem]);
-  const csv=[hdrs,...rows].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=`GST_${curMonth==='master'?'Master':snLabel(curMonth)}_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}.csv`;
-  a.click();showToast('Exported ✓','ok');
+function exportCSV() {
+  // 1. Prepare Headers: Combine Master keys and Monthly keys
+  const masterHeaders = ["Name", "GSTIN", "State", "Frequency", "Priority", "Employee", "Fees P.A.", "GST User", "Owner Name", "Owner Phone"];
+  const monthlyHeaders = ["GSTR-1 Status", "GSTR-2B Status", "GSTR-3B Status", "G1 Remarks", "G3B Remarks", "G1 Assigned", "G3B Assigned"];
+  
+  const allHeaders = [...masterHeaders, ...monthlyHeaders];
+
+  // 2. Get Data
+  const isMaster = curMonth === 'master';
+  const masterList = clients; // Always use full client list for "Whole Client Master"
+  const monthRows = monthData[curMonth] || [];
+  
+  // Create a map for quick lookup of monthly data
+  const monthMap = {};
+  monthRows.forEach(r => { if(r.name) monthMap[r.name] = r; });
+
+  // 3. Build Rows
+  const csvRows = masterList.map(c => {
+    const m = monthMap[c.name] || {}; // Get monthly data if it exists
+    
+    // Master Data Points
+    const row = [
+      c.name, c.gstin, c.state, c.freq, c.priority, c.emp, c.fees, c.gst_user, c.own_name, c.own_phone
+    ];
+    
+    // Append Monthly Data Points (only if not in 'master' view, otherwise leave blank)
+    if (!isMaster) {
+      row.push(
+        m.g1st || 'Data Not Received',
+        m.g2bst || 'Nil / Not Generated',
+        m.g3st || 'Data Not Received',
+        m.g1rem || '',
+        m.g3rem || '',
+        m.g1emp || c.emp || '',
+        m.g3emp || c.emp || ''
+      );
+    } else {
+      // Fill with "N/A" or empty if exporting from Master tab
+      row.push("N/A", "N/A", "N/A", "", "", "", "");
+    }
+    
+    return row;
+  });
+
+  // 4. Generate CSV String
+  const csvContent = [allHeaders, ...csvRows]
+    .map(r => r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+
+  // 5. Trigger Download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const fileName = `GST_Full_Export_${curMonth}_${new Date().toISOString().slice(0,10)}.csv`;
+  
+  link.setAttribute("href", URL.createObjectURL(blob));
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('Combined Export Ready ✓', 'ok');
 }
 
 // ── MODAL / TOAST ────────────────────────────────────────
