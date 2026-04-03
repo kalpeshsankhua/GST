@@ -1613,9 +1613,9 @@ function openDetail(name){
   // Credentials
   el('d-cred').innerHTML=`
     <div class="info-sec">Tally</div>
-    ${[['Data Version / Format',c.tally_ver],['Username',c.tally_user],['Password',c.tally_pass?'••••••':'—']].map(([l,v])=>`<div class="info-row"><div class="info-lbl">${l}</div><div class="info-val" style="font-family:monospace">${h(v||'—')}</div></div>`).join('')}
+    ${[['Data Version / Format',c.tally_ver],['Username',c.tally_user],['Password',c.tally_pass]].map(([l,v])=>`<div class="info-row"><div class="info-lbl">${l}</div><div class="info-val" style="font-family:monospace">${h(v||'—')}</div></div>`).join('')}
     <div class="info-sec">GST Portal</div>
-    ${[['GST Username',c.gst_user],['GST Password',c.gst_pass?'••••••':'—']].map(([l,v])=>`<div class="info-row"><div class="info-lbl">${l}</div><div class="info-val" style="font-family:monospace">${h(v||'—')}</div></div>`).join('')}`;
+    ${[['GST Username',c.gst_user],['GST Password',c.gst_pass]].map(([l,v])=>`<div class="info-row"><div class="info-lbl">${l}</div><div class="info-val" style="font-family:monospace">${h(v||'—')}</div></div>`).join('')}`;
 
   // Contacts
   el('d-cont').innerHTML=`
